@@ -1,0 +1,10 @@
+[package]
+name = "chat_network"
+version = "0.1.0"
+authors = ["BB20101997 <bb-github@t-online.de>"]
+edition = "2018"
+
+[lib]
+
+[dependencies]
+chat_base = {path = "../base"}
