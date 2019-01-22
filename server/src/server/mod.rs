@@ -45,7 +45,7 @@ pub fn server_loop(Server { stream: listener, user_map, .. }: Server) {
     println!("The end!");
 }
 
-fn handle_connection(mut stream: TcpStream, user_map: UIDMap<TcpStream>) -> Result<()> {
+fn handle_connection(stream: TcpStream, user_map: UIDMap<TcpStream>) -> Result<()> {
     if let Ok((tx,rx, username,stream)) = connection_init(stream, &user_map) {
         let stream_copy = stream.try_clone()?;
 
