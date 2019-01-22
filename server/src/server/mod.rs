@@ -62,7 +62,7 @@ fn connection_init(stream: TcpStream, user_map: &UIDMap<TcpStream>) -> InitRetur
     use crate::network::connection;
     use  connection::init;
 
-    if let Ok(connection::Connection::Server(ServerConnection{stream,username})) =  init::connection_init(init::Server(()),stream){
+    if let Ok(connection::Connection::Server(ServerConnection{stream,username})) =  init::connection_init_server(init::Side::Server(()),stream){
         let mut uid = UserIdentifier::new(&username);
 
         let (tx, rx): (_, ServerReceiver<TcpStream>) = channel();

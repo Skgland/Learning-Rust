@@ -55,7 +55,7 @@ pub fn client_init(stream: TcpStream, commands: Commands<Client>) -> Result<Clie
     use crate::network::connection;
     use connection::init;
 
-    if let Ok(connection::Connection::Client(c)) = init::connection_init(init::Client(commands), stream){
+    if let Ok(connection::Connection::Client(c)) = init::connection_init_client(init::Side::Client(commands), stream){
         Ok(c)
     }else{
         Err(Error::new(ErrorKind::InvalidData,"Expected Client got something else"))
