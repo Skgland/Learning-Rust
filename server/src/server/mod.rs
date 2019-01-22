@@ -55,7 +55,9 @@ fn handle_connection(stream: TcpStream, user_map: UIDMap<TcpStream>) -> Result<(
     Ok(())
 }
 
-fn connection_init(stream: TcpStream, user_map: &UIDMap<TcpStream>) -> Result<(Sender<Pass<TcpStream>>,ServerReceiver<TcpStream>, String,TcpStream)> {
+type InitReturn = Result<(Sender<Pass<TcpStream>>, ServerReceiver<TcpStream>, String, TcpStream)>;
+
+fn connection_init(stream: TcpStream, user_map: &UIDMap<TcpStream>) -> InitReturn {
 
     use crate::network::connection;
     use  connection::init;
