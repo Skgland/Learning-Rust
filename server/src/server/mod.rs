@@ -100,6 +100,7 @@ fn connection_send_loop<R>(mut stream: R, rx: ServerReceiver<R>, user_map: &UIDM
     }
 }
 
+#[allow(clippy::collapsible_if)]
 fn connection_receive_loop<R>(mut stream: R, tx: Sender<Pass<R>>) where R: Read + Write {
     let mut line: String = String::new();
 
