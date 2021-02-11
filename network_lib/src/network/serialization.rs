@@ -1,19 +1,28 @@
 use self::ReadWrite::*;
-use ::macros::*;
 use std::prelude::v1::*;
 use std::result::Result::Ok;
 use std::io::prelude::*;
 use std::io::Result;
 use std::io::Error;
 use std::io::ErrorKind;
+use crate::macros::Serializable;
 
 ///
 /// an enum that determines if the serialize method from the Serialize trait serializes or deserialize
 ///
 
 pub enum ReadWrite<'a> {
-    READ { reader: &'a mut Read },
-    WRITE { writer: &'a mut Write },
+    READ { reader: &'a mut dyn Read },
+    WRITE { writer: &'a mut dyn Write },
+}
+
+impl<'a> ReadWrite<'a> {
+    fn flush(&mut self) -> Result<()> {
+        match self {
+            WRITE { writer } => writer.flush(),
+            READ { .. } => Ok(())
+        }
+    }
 }
 
 /// a test struct for testing the procedural derive module for the Serialize trait
@@ -56,7 +65,6 @@ mod serializable_integer_impl {
         }
     }
 
-    serialize_impl!(u8);
     serialize_impl!(i8);
     serialize_impl!(i16);
     serialize_impl!(u16);
@@ -68,9 +76,27 @@ mod serializable_integer_impl {
     serialize_impl!(i128);
 }
 
+
+impl Serializable for u8 {
+    fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
+        match direction {
+            READ { reader } => {
+                let buf = &mut [0];
+                reader.read_exact(buf)?;
+                *self = buf[0];
+                Ok(())
+            }
+            WRITE { writer } => {
+                writer.write_all(&[*self])?;
+                Ok(())
+            }
+        }
+    }
+}
+
 impl Serializable for bool {
     fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
-        let mut tmp = 0;
+        let mut tmp: u8 = 0;
 
         if let WRITE { .. } = direction {
             tmp = if *self { 1 } else { 0 };
@@ -91,25 +117,6 @@ mod impl_serializable_vec {
 
 
     impl<T> Serializable for Vec<T> where T: Serializable + Default {
-        default fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
-            let mut length: u32 = 0;
-
-            if let WRITE { .. } = direction {
-                length = self.len() as u32;
-            }
-
-            length.serialize(direction)?;
-
-            if let READ { .. } = direction {
-                self.resize_with(length as usize, T::default);
-            }
-
-            self.as_mut_slice().serialize(direction)?;
-            Ok(())
-        }
-    }
-
-    impl<T> Serializable for Vec<T> where T: Serializable + Clone + Default {
         fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
             let mut length: u32 = 0;
 
@@ -120,7 +127,7 @@ mod impl_serializable_vec {
             length.serialize(direction)?;
 
             if let READ { .. } = direction {
-                self.resize(length as usize, T::default());
+                self.resize_with(length as usize, Default::default);
             }
 
             self.as_mut_slice().serialize(direction)?;
@@ -133,21 +140,12 @@ mod impl_serializable_slice {
     use super::*;
 
     impl<T> Serializable for [T] where T: Serializable {
-        default fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
+        fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
             for item in self {
                 item.serialize(direction)?;
             }
 
             Ok(())
-        }
-    }
-
-    impl Serializable for [u8] {
-        fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
-            match direction {
-                WRITE { writer } => writer.write_all(self),
-                READ { reader } => reader.read_exact(self)
-            }
         }
     }
 }
@@ -171,5 +169,32 @@ impl Serializable for String {
         } else {
             Ok(())
         }
+    }
+}
+
+impl<T> Serializable for Option<T> where T: Serializable + Default {
+    fn serialize(&mut self, direction: &mut ReadWrite) -> Result<()> {
+        if let WRITE { .. } = direction {
+            match self {
+                Some(obj) => {
+                    true.serialize(direction)?;
+                    obj.serialize(direction)?;
+                }
+                None => false.serialize(direction)?
+            }
+        } else {
+            let mut is_some = false;
+            is_some.serialize(direction)?;
+
+            if is_some {
+                let mut obj: T = T::default();
+                obj.serialize(direction)?;
+                *self = Some(obj);
+            } else {
+                *self = None;
+            }
+        }
+
+        Ok(())
     }
 }

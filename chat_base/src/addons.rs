@@ -2,7 +2,7 @@ use std::string::String;
 use std::vec::Vec;
 use std::option::Option;
 
-pub use self::serialization::*;
+pub mod alias;
 
 ///
 /// A Trait for defining Chat Server/Client Commands
@@ -47,12 +47,4 @@ pub trait Command<AT> {
 pub trait SidePair {
 
     type OTHER: SidePair;
-}
-
-pub trait PacketFactory<AT> where AT: SidePair {
-    fn summon(&self) -> &dyn Packet<AT>;
-}
-
-pub trait Packet<AT> where Self: Serializable, AT: SidePair {
-    fn handle(&self, side: AT);
 }

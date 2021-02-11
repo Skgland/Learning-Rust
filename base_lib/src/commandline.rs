@@ -20,11 +20,10 @@ pub fn askln(question: &str) -> io::Result<String> {
 }
 
 ///
-/// read in a line discarding the line break
+/// read in a line discarding the whitespace at the end of the line
 ///
 pub fn read_input() -> io::Result<String> {
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
-    input.split_off(input.len() - 1);
-    Ok(input)
+    Ok(input.trim_end().to_string())
 }

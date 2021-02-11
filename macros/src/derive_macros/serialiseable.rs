@@ -2,7 +2,13 @@ use quote::{quote};
 use syn::{DeriveInput,Data::*,Ident,DataStruct,DataEnum};
 use syn::Type;
 
-pub fn impl_serializeable_macro(ast:&DeriveInput) -> proc_macro::TokenStream{
+///
+/// The implementation of the procedural macro for deriving the Serializable trait
+///
+/// Currently only Supports named structs
+///
+
+pub fn impl_serializable_macro(ast:&DeriveInput) -> proc_macro::TokenStream{
 
     let name = &ast.ident;
 
@@ -15,7 +21,6 @@ pub fn impl_serializeable_macro(ast:&DeriveInput) -> proc_macro::TokenStream{
                 if let Some(ident) = &field.ident{
                     fields_list.push(&ident);
                     types_list.push(&field.ty);
-
                 }
             }
         }
@@ -27,9 +32,9 @@ pub fn impl_serializeable_macro(ast:&DeriveInput) -> proc_macro::TokenStream{
 
     let gen = quote!{
 
-        struct _AssertSerializebility where #(#types_list:Serializeable),* {}
+        struct _AssertSerializebility where #(#types_list:Serializable),* {}
 
-        impl Serializeable for #name {
+        impl Serializable for #name {
 
             fn serialize(&mut self, direction: &mut ReadWrite) -> std::io::Result<()>{
                 #(self.#fields_list.serialize(direction)?;)*

@@ -3,33 +3,44 @@ use std::net::TcpStream;
 use std::io::Result;
 use std::io::ErrorKind;
 
-use crate::lib::prelude::v1::*;
 use std::thread::JoinHandle;
 use std::thread;
 use std::io::Error;
 
+use crate::lib::addons::alias::*;
+use crate::network::serialization::*;
+use crate::lib::InitState;
+use crate::lib;
+use chat_base::structs::Client;
+use std::result::Result::Ok;
+use crate::lib::Side;
+
+
 const SERVER_QUESTION: &str = "Please enter <Host>:<Port> to connect or type Quit to quit!";
 
-#[allow(clippy::option_map_unit_fn)]
-#[allow(clippy::result_map_unit_fn)]
 pub fn client_entry_point() {
-    crate::lib::common_entry();
+    base_lib::common_entry();
 
     let commands: Commands<Client> = Vec::new();
 
-    if let Err(e) = client_pre_init().and_then(|a| client_init(a, commands)).map(client_start){
-        eprintln!("{}",e);
+    if let Ok(stream) = client_pre_init() {
+        if let Err(e) = client_init(&stream){
+            eprintln!("{}",e);
+            return;
+        }
+        println!("Starting Client");
+        client_start(Client{stream,commands})
     }
 }
 
-fn client_start(client: Client) ->! {
+fn client_start(client: Client) -> ! {
     let handle = thread::spawn(move || receive_loop());
     input_loop(client, handle);
 }
 
 fn client_pre_init() -> Result<TcpStream> {
     loop {
-        let response = askln(SERVER_QUESTION);
+        let response = base_lib::commandline::askln(SERVER_QUESTION);
         match response {
             Ok(mut server) => {
                 match server.as_str() {
@@ -51,15 +62,25 @@ fn client_pre_init() -> Result<TcpStream> {
     }
 }
 
-pub fn client_init(stream: TcpStream, commands: Commands<Client>) -> Result<Client> {
-    use crate::network::connection;
-    use connection::init;
+pub fn client_init(stream: &TcpStream) -> Result<()> {
+    use crate::network::connection::*;
 
-    if let Ok(c) = init::client_connection(connection::ClientInitInput{commands}, stream){
-        Ok(c)
-    }else{
-        Err(Error::new(ErrorKind::InvalidData,"Expected Client got something else"))
-    }
+    let copy1 = &mut stream.try_clone()?;
+    let copy2 = &mut stream.try_clone()?;
+
+    let to_server = &mut ReadWrite::WRITE { writer: copy1 };
+    let to_client = &mut ReadWrite::READ { reader: copy2 };
+
+    let mut state = InitState::new(Side::Client);
+    let mut channel = ChannelPair::ClientPair {impl_to_server:to_server,impl_to_client:to_client};
+
+    println!("Init Setup complete!");
+
+    let init_protocol = lib::init_protocol();
+    println!("Initialized Protocol");
+    init_protocol.run_protocol(&mut state, &mut channel)?;
+
+    Ok(())
 }
 
 
@@ -67,9 +88,9 @@ pub fn input_loop<A>(Client { mut stream, .. }: Client, _handle: JoinHandle<A>) 
     println!("Entering Client Input Loop!");
     loop {
         //import part macro
-        use crate::lib::part;
+        use base_lib::part;
 
-        let mut message = part!(message in (Ok(message) = ask("")) else panic!("Error while asking for input!")) ;
+        let mut message = part!(message in (Ok(message) = base_lib::commandline::ask("")) else panic!("Error while asking for input!"));
 
         message.serialize(&mut ReadWrite::WRITE { writer: &mut stream }).expect("Fuck!");
     }

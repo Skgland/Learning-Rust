@@ -1,5 +1,5 @@
 [package]
-name = "chat_base"
+name = "base_lib"
 version = "0.1.0"
 authors = ["BB20101997 <bb-github@t-online.de>"]
 edition = "2018"

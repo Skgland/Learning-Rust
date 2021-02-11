@@ -1,4 +1,3 @@
-use super::traits::Command;
 use std::prelude::v1::*;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -20,6 +19,6 @@ pub enum Pass<R> {
     CloseConnection
 }
 
-pub type Commands<AT> = Vec<Rc<Command<AT>>>;
+pub type Commands<AT> = Vec<Rc<dyn super::Command<AT>>>;
 
 pub type UIDMap<A> = Arc<Mutex<HashMap<String, Vec<Sender<Pass<A>>>>>>;

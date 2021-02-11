@@ -1,11 +1,9 @@
 [package]
-name = "network_lib"
+name = "chat_base"
 version = "0.1.0"
 authors = ["BB20101997 <bb-github@t-online.de>"]
 edition = "2018"
 
-[lib]
-
 [dependencies]
 base_lib = {path = "../base_lib"}
-macros = {path = "../macros"}
+network_lib = {path = "../network_lib"}

@@ -1,3 +1,3 @@
 [workspace]
-members = ["network","macros","macros-test","base","server","client"]
+members = ["network_lib","macros","macros_test","base_lib","chat_server","chat_client","chat_server"]
 

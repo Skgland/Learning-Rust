@@ -5,6 +5,8 @@ use std::net::TcpStream;
 use std::io::Read;
 use std::io::Write;
 
+use super::addons::alias::*;
+
 ///
 /// A type containing the state for a User on the Chat Server
 ///

@@ -1,6 +1,4 @@
-#![feature(specialization)]
-#![feature(box_syntax)]
-use chat_base as lib;
+use macros;
 
 mod network;
 

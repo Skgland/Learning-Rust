@@ -1,5 +1,5 @@
 pub use chat_base as lib;
-pub use chat_network as network;
+pub use network_lib as network;
 
 mod client;
 

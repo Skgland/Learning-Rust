@@ -1,16 +1,17 @@
-use crate::lib::api::traits::serialization::Serializable;
+use crate::network::serialization::Serializable;
+use crate::network::protocol::Protocol::Update;
 
 pub enum Protocol<State, A: StateAccess<State>> {
-    END,
-    Chain(Box<Protocol<State, A>>, Box<Protocol<State, A>>),
-    Conditional(Box<Fn(&State) -> bool>, Box<Protocol<State, A>>, Box<Protocol<State, A>>),
-    Update(Box<Fn(&mut State) -> ()>),
+    Chain(Vec<Protocol<State, A>>),
+    Conditional(Box<dyn Fn(&State) -> bool>, Box<Protocol<State, A>>, Box<Protocol<State, A>>),
+    Update(Box<dyn Fn(&mut State) -> std::io::Result<()>>),
+    Exchange(A, A),
     Transfer(Destination, A),
 }
 
 
 pub trait StateAccess<State> {
-    fn get_access(&self, state: &State) -> &mut dyn Serializable;
+    fn get_access<'b>(&self, state: &'b mut State) -> std::io::Result<&'b mut dyn Serializable>;
 }
 
 pub enum Destination {
@@ -19,30 +20,60 @@ pub enum Destination {
 }
 
 impl<State, A: StateAccess<State>> Protocol<State, A> {
-    pub fn run_protocol(&self, state: &mut State, connection: &mut super::connection::ChannelPair) -> std::io::Result<()>{
+    #[allow(non_snake_case)]
+    pub fn End() -> Self {
+        Update(Box::new(|_| Ok(())))
+    }
+
+    pub fn run_protocol(&self, state: &mut State, connection: &mut super::connection::ChannelPair) -> std::io::Result<()> {
         let mut order = Vec::new();
         order.push(self);
 
         while let Some(protocol) = order.pop() {
             match protocol {
-                Protocol::END => {}
                 Protocol::Transfer(Destination::ToServer, accessor) => {
-                    accessor.get_access(state).serialize(connection.to_server())?;
+                    println!("Transferring to Server");
+                    match accessor.get_access(state) {
+                        Err(e) => Err(e),
+                        Ok(access) => access.serialize(connection.towards_server()),
+                    }?
                 }
                 Protocol::Transfer(Destination::ToClient, accessor) => {
-                    accessor.get_access(state).serialize(connection.to_client())?;
+                    println!("Transferring to Client");
+                    match accessor.get_access(state) {
+                        Ok(access) => access.serialize(connection.towards_client()),
+                        Err(e) => Err(e)
+                    }?
+                }
+                Protocol::Exchange(sending, receiving) => {
+                    println!("Sending for exchange");
+                    match sending.get_access(state) {
+                        Ok(sending) => {
+                            println!("Serializing");
+                            sending.serialize(connection.towards_other_side())?
+                        },
+                        Err(e) => return Err(e)
+                    }
+                    println!("Receiving for exchange");
+                    match receiving.get_access(state) {
+                        Ok(receiving) => receiving.serialize(connection.towards_this_side())?,
+                        Err(e) => return Err(e)
+                    }
+
                 }
                 Protocol::Update(update) => {
-                    update(state);
+                    println!("Updating");
+                    update(state)?;
                 }
-                Protocol::Chain(first, second) => {
-                    order.push(second);
-                    order.push(first);
+                Protocol::Chain(content) => {
+                    println!("Chaining");
+                    order.extend(content.iter().rev());
                 }
-                Protocol::Conditional(condition,when,otherwise) => {
+                Protocol::Conditional(condition, when, otherwise) => {
+                    println!("Deciding");
                     if condition(state) {
                         order.push(when);
-                    }else {
+                    } else {
                         order.push(otherwise);
                     }
                 }
