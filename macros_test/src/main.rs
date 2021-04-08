@@ -3,10 +3,11 @@ fn main(){}
 
 #[cfg(test)]
 mod tests {
-    use chat_base::prelude::v1::*;
+
     use std::collections::VecDeque;
     use std::io::*;
     use macros::*;
+    use network_lib::serialization::{ReadWrite, Serializable};
 
     struct TestWR<'a> {
         queue: &'a mut VecDeque<u8>

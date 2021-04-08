@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 macros = {path = "../macros"}
 base_lib = {path = "../base_lib"}
+network_lib = {path = "../network_lib"}
