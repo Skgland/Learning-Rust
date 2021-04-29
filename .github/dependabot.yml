@@ -1,0 +1,19 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: syn
+    versions:
+    - 1.0.69
+    - 1.0.70
+  - dependency-name: quote
+    versions:
+    - 1.0.9
+  - dependency-name: proc-macro2
+    versions:
+    - 1.0.26
